@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AssetType {
+  Equity
+  Commodity
+  Crypto
+  Bond
+  Index
+  ETF
+  Other
+}
+
+enum AlertType {
+  PRICE_ABOVE
+  PRICE_BELOW
+  CHANGE_PERCENT_ABOVE
+  CHANGE_PERCENT_BELOW
+}
+
+enum AlertStatus {
+  ACTIVE
+  TRIGGERED
+  DISABLED
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  role         Role           @default(USER)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  watchlists   Watchlist[]
+  portfolio    PortfolioHolding[]
+  alerts       Alert[]
+  calculations SavedCalculation[]
+  researchNotes ResearchNote[]
+  reports      ResearchReport[]
+  snapshots    VisitSnapshot[]
+  documents    ResearchDocument[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Security {
+  id           String    @id @default(cuid())
+  ticker       String    @unique
+  yahooSymbol  String    @unique
+  name         String
+  exchange     String
+  sector       String
+  industry     String?
+  assetType    AssetType @default(Equity)
+  currency     String
+  country      String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  quotes       QuoteSnapshot[]
+  portfolio    PortfolioHolding[]
+  alerts       Alert[]
+  forecasts    ForecastRun[]
+}
+
+model QuoteSnapshot {
+  id            String   @id @default(cuid())
+  securityId    String
+  security      Security @relation(fields: [securityId], references: [id], onDelete: Cascade)
+  price         Float
+  changePercent Float
+  currency      String
+  asOf          DateTime
+  source        String
+  createdAt     DateTime @default(now())
+
+  @@index([securityId, asOf])
+}
+
+model Watchlist {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String           @default("Default")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  items     WatchlistItem[]
+
+  @@unique([userId, name])
+}
+
+model WatchlistItem {
+  id          String    @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  ticker      String
+  createdAt   DateTime  @default(now())
+
+  @@unique([watchlistId, ticker])
+}
+
+model PortfolioHolding {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  securityId    String?
+  security      Security? @relation(fields: [securityId], references: [id], onDelete: SetNull)
+  ticker        String
+  quantity      Float
+  purchasePrice Float
+  purchaseDate  DateTime
+  currency      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  securityId  String?
+  security    Security?   @relation(fields: [securityId], references: [id], onDelete: SetNull)
+  ticker      String
+  type        AlertType
+  threshold   Float
+  status      AlertStatus @default(ACTIVE)
+  message     String?
+  triggeredAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId, status])
+}
+
+model SavedCalculation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  formula   String
+  result    String
+  inputs    String?
+  savedAt   DateTime @default(now())
+}
+
+model ResearchNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  ticker    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ResearchDocument {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  contentText  String
+  analysisJson String?
+  createdAt    DateTime @default(now())
+}
+
+model ResearchReport {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker    String
+  title     String
+  sections  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VisitSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payload   Json
+  createdAt DateTime @default(now())
+}
+
+model ForecastRun {
+  id           String   @id @default(cuid())
+  securityId   String
+  security     Security @relation(fields: [securityId], references: [id], onDelete: Cascade)
+  ticker       String
+  modelVersion String
+  horizonDays  Int
+  asOf         DateTime
+  trainingStart DateTime
+  trainingEnd  DateTime
+  metrics      Json
+  scenarios    Json
+  methodology  String
+  createdAt    DateTime @default(now())
+
+  @@index([ticker, createdAt])
+}
+
+model JobRun {
+  id        String   @id @default(cuid())
+  name      String
+  status    String
+  detail    String?
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+}
+
+model CacheEntry {
+  key       String   @id
+  value     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}

@@ -1,0 +1,28 @@
+{
+  "name": "stocksense-ai",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "backend",
+    "Frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"npm run dev -w backend\" \"npm run dev -w Frontend\"",
+    "build": "npm run build -w backend && npm run build -w Frontend",
+    "lint": "npm run lint -w backend && npm run lint -w Frontend",
+    "typecheck": "npm run typecheck -w backend",
+    "test": "npm run test -w backend && npm run test -w Frontend",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "db:setup": "npm run db:up && sleep 3 && npm run db:migrate && npm run db:seed",
+    "postinstall": "npm run prisma:generate -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
