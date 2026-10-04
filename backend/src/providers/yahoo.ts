@@ -10,7 +10,8 @@ import { logger } from '../lib/logger.js';
 import { cache } from '../lib/cache.js';
 
 const SOURCE = 'Yahoo Finance';
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+const yahooFinance = YahooFinance;
+yahooFinance.suppressNotices(['yahooSurvey']);
 
 function iso(value: Date | number | string | undefined | null): string | undefined {
   if (value == null) return undefined;

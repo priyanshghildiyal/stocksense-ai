@@ -1,8 +1,13 @@
-import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../lib/config.js';
 import { AppError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
+
+declare module 'express' {
+  export interface Request {
+    user?: AuthUser;
+  }
+}
 
 export type AuthUser = {
   id: string;
@@ -11,26 +16,20 @@ export type AuthUser = {
   role: 'USER' | 'ADMIN';
 };
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-    }
-  }
-}
-
 export function signAccessToken(user: AuthUser) {
   return jwt.sign(
     { sub: user.id, email: user.email, name: user.name, role: user.role },
     env.JWT_ACCESS_SECRET,
-    { expiresIn: env.JWT_ACCESS_TTL },
+    { expiresIn: env.JWT_ACCESS_TTL as string, algorithm: 'HS256' } as jwt.SignOptions,
   );
 }
 
 export function signRefreshToken(userId: string) {
-  return jwt.sign({ sub: userId, typ: 'refresh' }, env.JWT_REFRESH_SECRET, {
-    expiresIn: env.JWT_REFRESH_TTL,
-  });
+  return jwt.sign(
+    { sub: userId, typ: 'refresh' },
+    env.JWT_REFRESH_SECRET,
+    { expiresIn: env.JWT_REFRESH_TTL as string, algorithm: 'HS256' } as jwt.SignOptions,
+  );
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {

@@ -40,7 +40,7 @@ export async function runForecast(ticker: string, horizonDays = 21) {
   // Walk-forward one-step MAE on holdout using expanding mean return (no leakage)
   let absErr = 0;
   let count = 0;
-  let expanding = [...train];
+  const expanding = [...train];
   for (const actual of test) {
     const rets = expanding.slice(1).map((c, i) => (c - expanding[i]) / expanding[i]);
     const meanRet = rets.reduce((a, b) => a + b, 0) / rets.length;

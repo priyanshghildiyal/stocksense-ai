@@ -34,7 +34,7 @@ export function createApp() {
   }));
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
-  app.use(pinoHttp({ logger }));
+  app.use((pinoHttp as any)({ logger }));
   app.use(rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,

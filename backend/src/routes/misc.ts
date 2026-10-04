@@ -190,7 +190,7 @@ reportsRouter.post('/', requireAuth, validateBody(z.object({
         userId: req.user!.id,
         ticker,
         title: req.body.title || `${ticker} research report`,
-        sections,
+        sections: JSON.stringify(sections),
       },
     });
     res.status(201).json({ report });
@@ -322,11 +322,11 @@ workspaceRouter.get('/what-changed', async (req, res, next) => {
     }
     const { getSecuritiesPayload } = await import('../services/market.js');
     const current = await getSecuritiesPayload(false);
-    const prevMap = new Map(
+    const prevMap: Map<string, any> = new Map(
       ((previous.payload as any).securities || []).map((s: any) => [s.ticker, s]),
     );
-    const changes = current.securities
-      .map((s) => {
+    const changes = (current.securities as any[])
+      .map((s: any) => {
         const p = prevMap.get(s.ticker);
         if (!p) return null;
         return {
