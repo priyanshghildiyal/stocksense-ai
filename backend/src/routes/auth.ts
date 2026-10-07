@@ -32,12 +32,14 @@ function setAuthCookies(res: import('express').Response, accessToken: string, re
     httpOnly: true,
     sameSite: 'lax',
     secure,
+    path: '/',
     maxAge: 15 * 60 * 1000,
   });
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure,
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
@@ -71,8 +73,6 @@ router.post('/register', validateBody(registerSchema), async (req, res, next) =>
     setAuthCookies(res, accessToken, refreshToken);
     res.status(201).json({
       user: authUser,
-      accessToken,
-      refreshToken,
     });
   } catch (error) {
     next(error);
@@ -98,7 +98,7 @@ router.post('/login', validateBody(loginSchema), async (req, res, next) => {
       },
     });
     setAuthCookies(res, accessToken, refreshToken);
-    res.json({ user: authUser, accessToken, refreshToken });
+    res.json({ user: authUser });
   } catch (error) {
     next(error);
   }
@@ -146,7 +146,7 @@ router.post('/refresh', async (req, res, next) => {
       },
     });
     setAuthCookies(res, accessToken, refreshToken);
-    res.json({ user: authUser, accessToken, refreshToken });
+    res.json({ user: authUser });
   } catch (error) {
     next(error);
   }

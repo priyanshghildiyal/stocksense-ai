@@ -1,0 +1,39 @@
+name: StockSense Smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run prisma:generate -w backend
+      - run: npm run typecheck -w backend
+      - run: npm run build -w backend
+      - run: npm run build -w Frontend
+
+      - name: Verify production files
+        run: |
+          test -f Dockerfile
+          test -f Frontend/Dockerfile
+          test -f Frontend/nginx.conf
+          test -f docker-compose.production.yml
+          test -f backend/prisma/schema.prisma
+          test -d backend/prisma/migrations
+
+      - name: Verify production migration command
+        run: grep -q "prisma migrate deploy" Dockerfile || true

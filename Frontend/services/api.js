@@ -70,6 +70,7 @@ export const api = {
   alertsGet: () => request('/api/alerts'),
   alertsCreate: (body) => request('/api/alerts', { method: 'POST', body: JSON.stringify(body) }),
   alertsDelete: (id) => request(`/api/alerts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  refresh: () => request('/api/auth/refresh', { method: 'POST', body: '{}' }),
   health: () => request('/api/health'),
   adminHealth: () => request('/api/health/admin'),
   whatChanged: () => request('/api/workspace/what-changed'),
@@ -82,9 +83,16 @@ export const api = {
 };
 
 export function persistSession(result) {
+  // Tokens are normally held in httpOnly cookies. Keep this compatible with the
+  // current Bearer-token flow only when a server explicitly returns an access token.
   if (result?.accessToken) window.sessionStorage.setItem('stocksense:accessToken', result.accessToken);
-  if (result?.refreshToken) window.sessionStorage.setItem('stocksense:refreshToken', result.refreshToken);
   if (result?.user) window.sessionStorage.setItem('stocksense:user', JSON.stringify(result.user));
+}
+
+export async function refreshSession() {
+  const result = await api.refresh();
+  persistSession(result);
+  return result;
 }
 
 export function clearSession() {

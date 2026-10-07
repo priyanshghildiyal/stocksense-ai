@@ -25,6 +25,8 @@ const envSchema = z.object({
   ALERT_EVAL_CRON: z.string().default('*/2 * * * *'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(120),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().default(10),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -55,6 +57,8 @@ export const env = parsed.success
       ALERT_EVAL_CRON: '*/2 * * * *',
       RATE_LIMIT_WINDOW_MS: 60_000,
       RATE_LIMIT_MAX: 120,
+      AUTH_RATE_LIMIT_MAX: 10,
+      TRUST_PROXY: 1,
     } as z.infer<typeof envSchema>);
 
 export const isOpenAiConfigured = () => Boolean(env.OPENAI_API_KEY?.trim());

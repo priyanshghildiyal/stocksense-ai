@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { researchPrompts as questions, marketSecurities, fetchMarketSecurities, formatQuoteTimestamp } from './services/marketData.js';
+import { api, persistSession, clearSession } from './services/api.js';
 
 const NAV = [
   { group: 'DISCOVER', items: [['Overview', '⌂'], ['Markets', '◷'], ['Market Brain', '✳'], ['Market Map', '▦'], ['What Changed', '↗'], ['News Intelligence', '▧']] },
@@ -45,25 +46,41 @@ function getLocalDateOnly() {
   return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
 }
 
-function AuthPage({ onPreview, marketStatus }) {
+function AuthPage({ onAuthenticated, marketStatus }) {
   const [mode, setMode] = useState('Sign in');
   const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(false);
   return <main className="auth-page">
     <section className="auth-card" aria-labelledby="auth-title">
       <div className="auth-brand" aria-label="StockSense"><span className="brand-mark">S</span><span>stocksense<span className="brand-dot">.</span></span></div>
       <div className="auth-copy"><span className="eyebrow">YOUR FINANCIAL RESEARCH WORKSPACE</span><h1 id="auth-title">Research with more clarity.</h1><p>Sign in to continue to your workspace.</p></div>
       <div className="auth-tabs" role="tablist" aria-label="Account access">{['Sign in', 'Create account'].map(tab => <button type="button" role="tab" aria-selected={mode === tab} className={mode === tab ? 'active' : ''} key={tab} onClick={() => { setMode(tab); setNotice(''); }}>{tab}</button>)}</div>
-      <form className="auth-form" onSubmit={event => { event.preventDefault(); setNotice('Account services are not connected yet. No credentials were sent or stored.'); }}>
+      <form className="auth-form" onSubmit={async event => {
+        event.preventDefault();
+        setLoading(true);
+        setNotice('');
+        const form = new FormData(event.currentTarget);
+        try {
+          const payload = mode === 'Create account'
+            ? { name: String(form.get('name') || ''), email: String(form.get('email') || ''), password: String(form.get('password') || '') }
+            : { email: String(form.get('email') || ''), password: String(form.get('password') || '') };
+          const result = mode === 'Create account' ? await api.register(payload) : await api.login(payload);
+          persistSession(result);
+          onAuthenticated(result.user);
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : 'Authentication failed. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      }}>
         {mode === 'Create account' && <label>Full name<input autoComplete="name" placeholder="Your name" required /></label>}
         <label>Work email<input type="email" autoComplete="email" placeholder="you@example.com" required /></label>
         <label>Password<input type="password" autoComplete={mode === 'Sign in' ? 'current-password' : 'new-password'} placeholder="At least 8 characters" minLength={8} required /></label>
         {mode === 'Sign in' && <button type="button" className="auth-link" onClick={() => setNotice('Password recovery becomes available when account services are connected.')}>Forgot password?</button>}
-        <button className="auth-submit" type="submit">{mode} <span>→</span></button>
+        <button className="auth-submit" type="submit" disabled={loading}>{loading ? 'Please wait…' : mode} <span>{loading ? '…' : '→'}</span></button>
       </form>
       {notice && <p className="auth-notice" role="status">{notice}</p>}
-      <div className="auth-divider"><span>OR</span></div>
-      <button type="button" className="auth-preview" onClick={onPreview}>Explore the workspace preview</button>
-      <p className="auth-legal">By continuing, you agree to the applicable terms and privacy policy. Authentication is not configured in this frontend.</p>
+      <p className="auth-legal">By continuing, you agree to the applicable terms and privacy policy. Your session is protected by secure, httpOnly authentication cookies.</p>
     </section>
     <aside className="auth-aside"><div className="auth-aside-content"><span className="eyebrow">A CALMER WAY TO FOLLOW MARKETS</span><h2>See the bigger picture, without losing sight of the details.</h2><p>Research equities, commodities, digital assets, and fixed income in one workspace—with data status and context in view.</p><div className="auth-asset-chips"><span>Equities</span><span>Gold</span><span>Crypto</span><span>Bonds</span></div><div className="auth-trust-note">{marketStatus.status === 'online' ? `DATA SOURCE AVAILABLE · ${marketStatus.source}` : marketStatus.status === 'stale' ? 'MARKET DATA MAY BE STALE' : 'NO MARKET FEED CONNECTED · No sample figures included'}</div></div></aside>
   </main>;
@@ -75,6 +92,7 @@ function LineChart() {
 
 function App() {
   const [workspacePreview, setWorkspacePreview] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [marketStatus, setMarketStatus] = useState({ status: 'loading', source: '', updatedAt: null, error: '' });
   const [refreshKey, setRefreshKey] = useState(0);
   const [page, setPage] = useState('Overview');
@@ -111,6 +129,21 @@ function App() {
       (item.inputs === undefined || typeof item.inputs === 'string')
     )
   ));
+
+  useEffect(() => {
+    let active = true;
+    api.me().then(({ user }) => {
+      if (!active) return;
+      setProfile({ name: user.name, email: user.email });
+      setProfileDraft({ name: user.name, email: user.email });
+      setWorkspacePreview(true);
+    }).catch(() => {
+      if (active) setWorkspacePreview(false);
+    }).finally(() => {
+      if (active) setAuthChecking(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -271,7 +304,9 @@ function App() {
     setProfileMenuOpen(false);
     setProfileDialogOpen(true);
   };
-  const signOut = () => {
+  const signOut = async () => {
+    try { await api.logout(); } catch { /* local session is cleared regardless */ }
+    clearSession();
     setProfileMenuOpen(false);
     setProfileDialogOpen(false);
     setSearchOpen(false);
@@ -295,7 +330,8 @@ function App() {
     setPage('AI Analyst');
   };
 
-  if (!workspacePreview) return <AuthPage onPreview={() => setWorkspacePreview(true)} marketStatus={marketStatus} />;
+  if (authChecking) return <main className="auth-page"><section className="auth-card"><div className="auth-brand" aria-label="StockSense"><span className="brand-mark">S</span><span>stocksense<span className="brand-dot">.</span></span></div><p role="status">Checking your secure session…</p></section></main>;
+  if (!workspacePreview) return <AuthPage onAuthenticated={(user) => { setProfile({ name: user.name, email: user.email }); setProfileDraft({ name: user.name, email: user.email }); setWorkspacePreview(true); }} marketStatus={marketStatus} />;
 
   return (
     <div className={`app-shell ${dark ? 'theme-dark' : ''}`}>

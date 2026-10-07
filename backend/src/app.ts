@@ -26,7 +26,7 @@ import {
 
 export function createApp() {
   const app = express();
-  app.set('trust proxy', 1);
+  app.set('trust proxy', env.TRUST_PROXY);
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors({
     origin: env.CORS_ORIGIN.split(',').map((s) => s.trim()),
@@ -35,6 +35,14 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use((pinoHttp as any)({ logger }));
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: env.AUTH_RATE_LIMIT_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: { code: 'AUTH_RATE_LIMITED', message: 'Too many authentication attempts. Please try again later.' } },
+  });
+
   app.use(rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,
@@ -51,7 +59,7 @@ export function createApp() {
   });
 
   app.use('/api/health', healthRouter);
-  app.use('/api/auth', authRoutes);
+  app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/market', marketRoutes);
   app.use('/api/watchlist', watchlistRoutes);
   app.use('/api/portfolio', portfolioRoutes);
