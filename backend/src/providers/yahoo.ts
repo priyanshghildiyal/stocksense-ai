@@ -123,7 +123,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
       return: 'array',
     }, { validateResult: false });
 
-    const bars: HistoryBar[] = (result || [])
+    const bars: HistoryBar[] = (result?.quotes || [])
       .map((bar: any) => {
         const date = iso(bar.date);
         const open = Number(bar.open);
