@@ -32,3 +32,34 @@ AI-powered financial research and market intelligence platform for analyzing sto
    - API: http://localhost:4000
 
 The API is protected: requests to authenticated endpoints need a Bearer token from `/api/auth/login` or the httpOnly cookies the server sets. See the route docs in `backend/src/routes/`.
+
+## Production deployment
+
+The repository includes a production Docker stack:
+
+```bash
+cp .env.example .env
+# Set strong production secrets and your public frontend origin.
+docker compose -f docker-compose.production.yml up -d --build
+```
+
+The frontend is exposed on the configured `PORT` (default `8080`). Nginx serves the SPA and proxies `/api/*` to the backend. PostgreSQL is kept on the internal Docker network and persisted in a named volume.
+
+### Required production variables
+
+- `DATABASE_URL`
+- `POSTGRES_USER` / `POSTGRES_PASSWORD`
+- `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` — use independent, cryptographically random values of at least 32 characters
+- `CORS_ORIGIN` — the exact public frontend origin
+- `TRUST_PROXY` — set to the number of trusted reverse-proxy hops (normally `1` behind one ingress)
+- `OPENAI_API_KEY` — optional; AI research remains explicitly unavailable when unset
+
+Never commit `.env` or production secrets.
+
+### CI
+
+GitHub Actions runs dependency installation, Prisma generation, backend typechecking/building, frontend production build, and a dependency audit on pushes and pull requests.
+
+### Data-provider note
+
+StockSense currently uses `yahoo-finance2` through the backend provider layer. It is an unofficial Yahoo Finance client, so provider availability and upstream behavior are not guaranteed. For a commercial production deployment, keep the provider behind the existing adapter and plan a supported/licensed market-data provider with explicit SLAs and redistribution rights.
