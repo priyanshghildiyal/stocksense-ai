@@ -46,7 +46,7 @@ function getLocalDateOnly() {
   return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
 }
 
-function AuthPage({ onAuthenticated, onPreview, marketStatus }) {
+function AuthPage({ onAuthenticated, marketStatus }) {
   const [mode, setMode] = useState('Sign in');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,8 +80,6 @@ function AuthPage({ onAuthenticated, onPreview, marketStatus }) {
         <button className="auth-submit" type="submit" disabled={loading}>{loading ? 'Please wait…' : mode} <span>{loading ? '…' : '→'}</span></button>
       </form>
       {notice && <p className="auth-notice" role="status">{notice}</p>}
-      <div className="auth-divider"><span>OR</span></div>
-      <button type="button" className="auth-preview" onClick={onPreview}>Explore the workspace preview</button>
       <p className="auth-legal">By continuing, you agree to the applicable terms and privacy policy. Your session is protected by secure, httpOnly authentication cookies.</p>
     </section>
     <aside className="auth-aside"><div className="auth-aside-content"><span className="eyebrow">A CALMER WAY TO FOLLOW MARKETS</span><h2>See the bigger picture, without losing sight of the details.</h2><p>Research equities, commodities, digital assets, and fixed income in one workspace—with data status and context in view.</p><div className="auth-asset-chips"><span>Equities</span><span>Gold</span><span>Crypto</span><span>Bonds</span></div><div className="auth-trust-note">{marketStatus.status === 'online' ? `DATA SOURCE AVAILABLE · ${marketStatus.source}` : marketStatus.status === 'stale' ? 'MARKET DATA MAY BE STALE' : 'NO MARKET FEED CONNECTED · No sample figures included'}</div></div></aside>
@@ -333,7 +331,7 @@ function App() {
   };
 
   if (authChecking) return <main className="auth-page"><section className="auth-card"><div className="auth-brand" aria-label="StockSense"><span className="brand-mark">S</span><span>stocksense<span className="brand-dot">.</span></span></div><p role="status">Checking your secure session…</p></section></main>;
-  if (!workspacePreview) return <AuthPage onAuthenticated={(user) => { setProfile({ name: user.name, email: user.email }); setProfileDraft({ name: user.name, email: user.email }); setWorkspacePreview(true); }} onPreview={() => setWorkspacePreview(true)} marketStatus={marketStatus} />;
+  if (!workspacePreview) return <AuthPage onAuthenticated={(user) => { setProfile({ name: user.name, email: user.email }); setProfileDraft({ name: user.name, email: user.email }); setWorkspacePreview(true); }} marketStatus={marketStatus} />;
 
   return (
     <div className={`app-shell ${dark ? 'theme-dark' : ''}`}>
