@@ -4,11 +4,6 @@ import { env } from '../lib/config.js';
 import { AppError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
 
-declare module 'express' {
-  interface Request {
-    user?: AuthUser;
-  }
-}
 
 export type AuthUser = {
   id: string;
