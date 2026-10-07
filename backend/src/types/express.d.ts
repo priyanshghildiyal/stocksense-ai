@@ -1,3 +1,4 @@
+import type { AuthUser } from '../middleware/auth.js';
 import 'express-serve-static-core';
 
 // Express 4.22+ adds fetch-like properties to req at runtime that are missing
@@ -17,6 +18,7 @@ declare global {
       referrerPolicy?: ReferrerPolicy;
       signal?: AbortSignal;
       url?: string;
+    user?: AuthUser;
     }
   }
 }
