@@ -30,7 +30,7 @@ export function signRefreshToken(userId: string) {
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   try {
-    const header = req.headers.authorization;
+    const header = req.headers.authorization as string | undefined;
     const bearer = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
     const cookieToken = (req as any).cookies?.accessToken as string | undefined;
     const token = bearer || cookieToken;
@@ -50,7 +50,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
 }
 
 export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
+  const header = req.headers.authorization as string | undefined;
   const bearer = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
   const cookieToken = (req as any).cookies?.accessToken as string | undefined;
   const token = bearer || cookieToken;
