@@ -18,7 +18,7 @@ declare global {
       referrerPolicy?: ReferrerPolicy;
       signal?: AbortSignal;
       url?: string;
-    user?: AuthUser;
+      user?: AuthUser;
     }
   }
 }
