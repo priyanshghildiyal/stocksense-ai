@@ -1,13 +1,9 @@
 import jwt from 'jsonwebtoken';
+import type { NextFunction, Request, Response } from 'express';
 import { env } from '../lib/config.js';
 import { AppError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
 
-declare module 'express' {
-  export interface Request {
-    user?: AuthUser;
-  }
-}
 
 export type AuthUser = {
   id: string;
