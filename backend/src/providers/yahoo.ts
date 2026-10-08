@@ -117,12 +117,13 @@ export class YahooFinanceProvider implements MarketDataProvider {
     if (cached) return cached;
 
     const period1 = rangeToStart(range);
-    const result = await yahooFinance.historical(symbol, {
+    const result = await yahooFinance.chart(symbol, {
       period1,
       interval: range === '1d' || range === '5d' ? '15m' : '1d',
+      return: 'array',
     }, { validateResult: false });
 
-    const bars: HistoryBar[] = (result || [])
+    const bars: HistoryBar[] = (result?.quotes || [])
       .map((bar: any) => {
         const date = iso(bar.date);
         const open = Number(bar.open);
